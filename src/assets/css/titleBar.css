@@ -1,0 +1,17 @@
+.titlebar {
+    height: 30px;
+    background: #282c34;
+    user-select: none;
+    display: flex;
+    justify-content: flex-end;
+}
+.titlebar-button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 30px;
+    height: 30px;
+}
+.titlebar-button:hover {
+    background: #45484f;
+}
