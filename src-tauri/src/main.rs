@@ -9,7 +9,7 @@ fn zero() -> String {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![zero,api::init_info])
+        .invoke_handler(tauri::generate_handler![zero,api::init_info,api::save_email_info])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
