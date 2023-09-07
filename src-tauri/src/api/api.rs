@@ -1,16 +1,21 @@
 use std::borrow::ToOwned;
 use std::fs;
 use std::fs::File;
-use std::io::{Write};
+use std::io::Write;
 use std::path::Path;
-use lettre::address::AddressError;
+
+use futures::executor::block_on;
 use lettre::{Message, SmtpTransport, Transport};
+use lettre::address::AddressError;
 use lettre::message::MultiPart;
 use lettre::transport::smtp::authentication::Credentials;
-
+use sea_orm::*;
 use tauri::api::path;
 
-use crate::model;
+use crate::{db, model};
+use crate::entity::prelude::*;
+use crate::entity::template;
+use crate::entity::template::Model;
 
 #[cfg(target_os = "windows")]
 const CONF_PATH_DB: &str = "\\.config\\g_email\\g_email.db";
@@ -23,6 +28,25 @@ const CONF_PATH_DB: &str = "/.config/g_email/g_email.db";
 const CONF_PATH_FILE: &str = "/.config/g_email/g_email.yaml";
 
 static mut CONF_PATH: &str = "";
+
+#[tauri::command]
+pub fn get_template() -> Result<Vec<template::Model>, ()> {
+    let db = block_on(db::get_db()).expect("获取数据库错误");
+    // 查询是否已有数据
+    let res: Vec<template::Model> = block_on(Template::find().all(&db)).expect("获取数据失败");
+    Ok(res)
+}
+
+#[tauri::command]
+pub fn save_template(title: String, con: String) {
+    let db = block_on(db::get_db()).expect("获取数据库错误");
+    let new_data = template::ActiveModel {
+        title: Set(title),
+        content: Set(con),
+        ..Default::default()
+    };
+    block_on(Template::insert(new_data).exec(&db)).expect("保存数据失败");
+}
 
 unsafe fn init_path() {
     let home_file_path = format!(
@@ -40,6 +64,8 @@ unsafe fn init_path() {
 #[tauri::command]
 pub fn init_info() -> Result<(), String> {
     unsafe { init_path() };
+    // 初始化数据库
+    block_on(init_db()).map_err(|_| "初始化数据库错误".to_string()).unwrap();
     let home_db_path = format!(
         "{}{}",
         path::home_dir()
@@ -72,6 +98,27 @@ pub fn init_info() -> Result<(), String> {
     if !cfg_db_path.exists() {
         // 创建文件
         File::create(home_db_path).map_err(|err| err.to_string())?;
+    }
+    Ok(())
+}
+
+// 初始化数据库基础模板
+async fn init_db() -> Result<(), DbErr> {
+    let db = db::get_db().await.expect("init db error:");
+    // 查询是否已有数据
+    let res = Template::find().all(&db).await.expect("init db error:");
+    if res.len() == 0 {
+        let tm_data = template::ActiveModel {
+            title: Set("Default".to_string()),
+            content: Set(model::init_temp().default),
+            ..Default::default()
+        };
+        let tmp = template::ActiveModel {
+            title: Set("tmp".to_string()),
+            content: Set(model::init_temp().tmp),
+            ..Default::default()
+        };
+        Template::insert_many([tmp, tm_data]).exec(&db).await?;
     }
     Ok(())
 }
