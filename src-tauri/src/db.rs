@@ -1,7 +1,7 @@
 use sea_orm::{Database, DatabaseConnection, DbErr};
 use tauri::api::path;
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 const CONF_PATH_DB: &str = "/.config/g_email/g_email.db";
 #[cfg(target_os = "windows")]
 const CONF_PATH_DB: &str = "\\.config\\g_email\\g_email.db";
