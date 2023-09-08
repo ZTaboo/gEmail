@@ -11,7 +11,10 @@ export default {
         extend: {},
     },
     plugins: [nextui({
-        defaultTheme: 'dark'
+        defaultTheme: 'dark',
     })],
+    corePlugins: {
+        preflight: true
+    }
 }
 
