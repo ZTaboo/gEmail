@@ -121,12 +121,7 @@ async fn init_db(db_migration_status: bool) -> Result<(), DbErr> {
             content: Set(model::init_temp().default),
             ..Default::default()
         };
-        let tmp = template::ActiveModel {
-            title: Set("tmp".to_string()),
-            content: Set(model::init_temp().tmp),
-            ..Default::default()
-        };
-        Template::insert_many([tmp, tm_data]).exec(&db).await?;
+        Template::insert_many([tm_data]).exec(&db).await?;
     }
     Ok(())
 }
