@@ -2,7 +2,7 @@ import {invoke} from "@tauri-apps/api/tauri";
 import {sendNotification} from "@tauri-apps/api/notification";
 import {useEffect, useState} from "react";
 import {TitleBar} from "./component/TitleBar.jsx";
-import {Button, Input, Modal, ModalContent, Tooltip, useDisclosure} from "@nextui-org/react";
+import {Button, Input, Modal, ModalContent, ModalFooter, Tooltip, useDisclosure} from "@nextui-org/react";
 import CodeMirror from '@uiw/react-codemirror';
 import {html} from "@codemirror/lang-html";
 import {css} from "@codemirror/lang-css";
@@ -14,6 +14,7 @@ import {TempModal} from "./component/TempModal.jsx";
 function App() {
     const {isOpen, onOpen, onClose} = useDisclosure()
     const {isOpen: isOpen1, onOpen: onOpen1, onClose: onClose1} = useDisclosure()
+    const {isOpen: isTpOpen, onOpen: onTpOpen, onClose: onTpClose} = useDisclosure()
     const [codeValue, setCodeValue] = useState('')
     const [emailData, setEmailData] = useState({
         toAddress: "",
@@ -21,11 +22,24 @@ function App() {
     })
     const [htmlTheme, setHtmlTheme] = useState("")
     const [isLoading, setIsLoading] = useState(false)
+    const [tpName, setTpName] = useState('')
     useEffect(() => {
         init_info().catch(e => {
             sendNotification(`初始化配置信息错误:${e}`)
         })
     }, [])
+
+    // 拦截没有target参数的跳转链接;
+    document.addEventListener('click', (e) => {
+        let target = e.target;
+        // 检查a标签是否有target属性
+        if (target.nodeName === 'A' && !target.target) {
+            console.log(target.nodeName)
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
+
     const init_info = async () => {
         await invoke("init_info")
     }
@@ -35,7 +49,7 @@ function App() {
             return
         }
         setIsLoading(true)
-        invoke("send_email", {...emailData, body: codeValue}).then(r => {
+        invoke("send_email", {...emailData, body: codeValue}).then(() => {
             sendNotification("发送成功")
             setIsLoading(false)
         }).catch(e => {
@@ -48,17 +62,36 @@ function App() {
         onClose1()
     }
 
+    const saveBtn = () => {
+        invoke("save_template", {title: tpName, con: codeValue}).then(() => {
+            onTpClose()
+            sendNotification(`保存成功`)
+        }).catch(e => {
+            sendNotification(e)
+        })
+    }
+
 
     return (
         <>
             {/*smtp配置弹出层*/}
             <Configuration isOpen={isOpen} onClose={onClose}> < /Configuration>
             <TempModal isOpen={isOpen1} onClose={onClose1} useTemplate={useTemplate}></TempModal>
-            <Modal>
+            <Modal onClose={onTpClose} isOpen={isTpOpen} hideCloseButton isKeyboardDismissDisabled
+                   isDismissable={false}>
                 <ModalContent>
-                    <div>
-
+                    <div className={'pt-5 pl-5 pr-5 pb-3'}>
+                        <div className={'flex items-center'}>
+                            <span className={'w-24'}>模板名称:</span>
+                            <Input size={"sm"} placeholder={'请输入模板名称'} value={tpName} onChange={(e) => {
+                                setTpName(e.target.value)
+                            }}></Input>
+                        </div>
                     </div>
+                    <ModalFooter>
+                        <Button size={"sm"} onClick={() => onTpClose()}>取消</Button>
+                        <Button color={"primary"} size={"sm"} className={'ml-4'} onClick={saveBtn}>保存</Button>
+                    </ModalFooter>
                 </ModalContent>
             </Modal>
             <TitleBar></TitleBar>
@@ -94,7 +127,8 @@ function App() {
                     theme={vscodeDark}
                 >
                     <Tooltip content={"另存为模板"} placement={'left'}>
-                        <Button className={'absolute right-4 bottom-4'} style={{zIndex: 1}} isIconOnly={true} onClick={}>
+                        <Button className={'absolute right-5 bottom-4'} style={{zIndex: 1}} isIconOnly={true}
+                                onClick={() => onTpOpen()}>
                             <img src="https://api.iconify.design/teenyicons/save-solid.svg?color=white" alt=""/>
                         </Button>
                     </Tooltip>

@@ -38,7 +38,7 @@ fn tp_default() -> String {
     </div>
     <div style="background-color: #fff; padding: 20px; border-radius: 5px; margin-top: 20px;">
         <h2 style="color: #333;">您的注册验证码</h2>
-        <p>您的注册验证码是：<strong>{{ .code }}</strong></p>
+        <p>您的注册验证码是：<strong>123456</strong></p>
         <p>请在注册页面输入此验证码以完成注册。</p>
     </div>
     <div style="display: flex;justify-content: end;padding-right: 20px;">

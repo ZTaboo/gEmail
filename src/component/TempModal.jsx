@@ -8,7 +8,7 @@ export const TempModal = ({isOpen, onClose, useTemplate}) => {
         invoke("get_template").then(r => {
             setTpList(r)
         })
-    }, [])
+    }, [isOpen])
     return (
         <Modal
             className={'pl-3 pt-3 pr-3'}

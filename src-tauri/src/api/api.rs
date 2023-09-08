@@ -12,10 +12,11 @@ use lettre::transport::smtp::authentication::Credentials;
 use sea_orm::*;
 use tauri::api::path;
 
+use migration::{Migrator, MigratorTrait};
+
 use crate::{db, model};
 use crate::entity::prelude::*;
 use crate::entity::template;
-use crate::entity::template::Model;
 
 #[cfg(target_os = "windows")]
 const CONF_PATH_DB: &str = "\\.config\\g_email\\g_email.db";
@@ -31,6 +32,7 @@ static mut CONF_PATH: &str = "";
 
 #[tauri::command]
 pub fn get_template() -> Result<Vec<template::Model>, ()> {
+    init_info().expect("初始化配置信息错误");
     let db = block_on(db::get_db()).expect("获取数据库错误");
     // 查询是否已有数据
     let res: Vec<template::Model> = block_on(Template::find().all(&db)).expect("获取数据失败");
@@ -38,14 +40,15 @@ pub fn get_template() -> Result<Vec<template::Model>, ()> {
 }
 
 #[tauri::command]
-pub fn save_template(title: String, con: String) {
-    let db = block_on(db::get_db()).expect("获取数据库错误");
+pub fn save_template(title: String, con: String) -> Result<(), String> {
+    let db = block_on(db::get_db()).map_err(|err| err.to_string())?;
     let new_data = template::ActiveModel {
         title: Set(title),
         content: Set(con),
         ..Default::default()
     };
-    block_on(Template::insert(new_data).exec(&db)).expect("保存数据失败");
+    block_on(Template::insert(new_data).exec(&db)).map_err(|_| "保存数据失败".to_string())?;
+    Ok(())
 }
 
 unsafe fn init_path() {
@@ -64,8 +67,7 @@ unsafe fn init_path() {
 #[tauri::command]
 pub fn init_info() -> Result<(), String> {
     unsafe { init_path() };
-    // 初始化数据库
-    block_on(init_db()).map_err(|_| "初始化数据库错误".to_string()).unwrap();
+    let mut db_migration_status = false;
     let home_db_path = format!(
         "{}{}",
         path::home_dir()
@@ -98,13 +100,19 @@ pub fn init_info() -> Result<(), String> {
     if !cfg_db_path.exists() {
         // 创建文件
         File::create(home_db_path).map_err(|err| err.to_string())?;
+        db_migration_status = true;
     }
+    // 初始化数据库
+    block_on(init_db(db_migration_status)).map_err(|_| "初始化数据库错误".to_string()).unwrap();
     Ok(())
 }
 
 // 初始化数据库基础模板
-async fn init_db() -> Result<(), DbErr> {
+async fn init_db(db_migration_status: bool) -> Result<(), DbErr> {
     let db = db::get_db().await.expect("init db error:");
+    if db_migration_status {
+        Migrator::up(&db, None).await?;
+    }
     // 查询是否已有数据
     let res = Template::find().all(&db).await.expect("init db error:");
     if res.len() == 0 {
@@ -179,6 +187,7 @@ pub fn save_email_info(smtp_server: String, username: String, password: String)
 
 #[tauri::command]
 pub fn get_yaml_init() -> Result<model::EmailConfig, String> {
+    init_info().expect("初始化配置信息错误");
     let file: String;
     unsafe {
         init_path();
