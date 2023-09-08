@@ -28,7 +28,8 @@ function App() {
             sendNotification(`初始化配置信息错误:${e}`)
         })
     }, [])
-
+    // 禁用右键
+    window.addEventListener("contextmenu", (e) => e.preventDefault(), false);
     // 拦截没有target参数的跳转链接;
     document.addEventListener('click', (e) => {
         let target = e.target;
