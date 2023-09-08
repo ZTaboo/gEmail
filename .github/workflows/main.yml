@@ -1,8 +1,8 @@
 name: 'publish'
 on:
   push:
-    branches:
-      - release
+    tags:
+      - 'v*'
 
 jobs:
   publish-tauri:
@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest, ubuntu-20.04, windows-latest]
+        platform: [ macos-latest, ubuntu-20.04, windows-latest ]
 
     runs-on: ${{ matrix.platform }}
     steps:
