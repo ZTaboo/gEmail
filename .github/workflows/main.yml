@@ -4,6 +4,7 @@ on:
     tags:
       - 'v*'
 
+
 jobs:
   publish-tauri:
     permissions:
