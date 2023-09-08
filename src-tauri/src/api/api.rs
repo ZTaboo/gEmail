@@ -23,9 +23,9 @@ const CONF_PATH_DB: &str = "\\.config\\g_email\\g_email.db";
 #[cfg(target_os = "windows")]
 const CONF_PATH_FILE: &str = "\\.config\\g_email\\g_email.yaml";
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 const CONF_PATH_DB: &str = "/.config/g_email/g_email.db";
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 const CONF_PATH_FILE: &str = "/.config/g_email/g_email.yaml";
 
 static mut CONF_PATH: &str = "";
